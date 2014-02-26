@@ -1,0 +1,10 @@
+﻿{
+  "ignore": [
+    "\\Scripts\\"
+  ],
+  "options": {
+    "predef": {}
+  },
+  "runOnSave": true,
+  "runOnBuild": true
+}

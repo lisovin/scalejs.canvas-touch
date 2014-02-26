@@ -1,0 +1,7 @@
+﻿({
+	mainConfigFile: '../config.js',
+    include: 'scalejs.canvas-touch',
+    exclude: [
+        'scalejs!core'
+    ]
+})
