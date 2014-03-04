@@ -10,11 +10,22 @@ define('scalejs.canvas-touch/canvas-touch',[
     
 
     return function (
-        canvasElement,  // External canvas, which holds image to pinch&zoom. NOTE: This extension REQUIRES a canvas with position=absolute, top=0, left=0, and a constant valid parentNode.
-        renderCallback, // Callback used to force the external canvas to render, with a given transform. Calls with parameters: (top, left, rotate, scale)
-        endCallback     // Callback used to return the final transform when nothing is touching the screen. Calls with parameters: (top, left, rotate, scale)
+        options
     ) {
-        var // Initialize variables:
+        var // Get options:
+            // External canvas, which holds image to pinch&zoom. NOTE: This extension REQUIRES a canvas with position=absolute, top=0, left=0, and a constant valid parentNode:
+            canvasElement = options.canvas,
+            // Callback used to force the external canvas to render, with a given transform. Calls with parameters: (top, left, rotate, scale):
+            renderCallback = options.renderCallback,
+            // (Optional) Callback used to return the start transform when something is touching the screen. Calls with parameters: (left, top, rotate, scale)
+            startCallback = options.startCallback || function () { return; },
+            // (Optional) Callback used to return the transform updates when something is touching the screen. Calls with parameters: (left, top, rotate, scale)
+            stepCallback = options.stepCallback || function () { return; },
+            // (Optional) Callback used to return the final transform when nothing is touching the screen. Calls with parameters: (left, top, rotate, scale)
+            endCallback = options.endCallback || function () { return; },
+            // (Optional) Parameter to disable rotate:
+            enableRotate = options.enableRotate !== undefined ? options.enableRotate : true,
+            // Initialize variables:
             canvasStyle = window.getComputedStyle(canvasElement),
             canvasWidth = Math.max(parseInt(canvasStyle.width, 10), 1),
             canvasHeight = Math.max(parseInt(canvasStyle.height, 10), 1),
@@ -29,7 +40,23 @@ define('scalejs.canvas-touch/canvas-touch',[
             rotateVal = 0,
             scaleVal = 1,
             lastTouches,
-            lastCenter;
+            lastCenter,
+            touchInProgress = false;
+
+        function parseCallback(transform) {
+            if (Object.prototype.toString.call(transform) === "[object Object]") {
+                leftVal = transform.left;
+                topVal = transform.top;
+                rotateVal = transform.rotate;
+                scaleVal = transform.scale;
+            }
+        }
+
+        function setRotateState(state) {
+            if (Object.prototype.toString.call(state) === "[object Boolean]") {
+                enableRotate = state;
+            }
+        }
 
         // Create off-screen buffer canvas:
         canvasRender = document.createElement("canvas");
@@ -49,6 +76,7 @@ define('scalejs.canvas-touch/canvas-touch',[
         contextShow = canvasShow.getContext('2d');
         canvasParent.appendChild(canvasShow);
 
+        // Function to resize pinch&zoom canvas to the dimensions of the external canvas:
         function resizeCanvas() {
             // Get external canvas size:
             canvasStyle = window.getComputedStyle(canvasElement);
@@ -78,15 +106,15 @@ define('scalejs.canvas-touch/canvas-touch',[
                 touches = [],
                 center,
                 scaleDiff,
-                rotateDiff,
+                rotateDiff = 0, // Initial value, useful for if disableScale is true.
                 pagePos,
                 elementPos,
                 groupPos,
                 rotatePos,
                 scalePos,
                 transPos,
-                sin,
-                cos,
+                sin = 0,    // Initial value, useful for if disableScale is true.
+                cos = 1,    // Initial value, useful for if disableScale is true.
                 i;
 
             // Convert touches to an array (to avoid safari's reuse of touch objects):
@@ -104,6 +132,8 @@ define('scalejs.canvas-touch/canvas-touch',[
             }
 
             if (event.type === "touch") {
+                // Set variable to know touch is in progress:
+                touchInProgress = true;
                 // Set all last* variables to starting gesture:
                 lastTouches = touches;
                 // Calculate Center:
@@ -122,6 +152,9 @@ define('scalejs.canvas-touch/canvas-touch',[
                 // Update width and height of pinch&zoom canvas, and off-screen buffer:
                 resizeCanvas();
 
+                // Callback for onStart event:
+                parseCallback(startCallback(leftVal, topVal, rotateVal, scaleVal));
+
                 // Render external canvas to pinch&zoom canvas:
                 contextShow.setTransform(1, 0, 0, 1, 0, 0);
                 contextShow.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -132,32 +165,21 @@ define('scalejs.canvas-touch/canvas-touch',[
                 canvasElement.style.display = "none";
                 // Reset external canvas visualization to default pinch&zoom settings, and render:
                 renderCallback(0, 0, 0, 1);
-                /*canvas.select("group")
-                    .attr("scaleX", 1)//scaleVal
-                    .attr("scaleY", 1)//scaleVal
-                    .attr("angle", 0)//rotateVal
-                    .attr("left", 0)//leftVal
-                    .attr("top", 0);//topVal
-                canvas.pumpRender();*/
                 // Render external canvas to off-screen buffer:
                 contextRender.clearRect(0, 0, canvasWidth, canvasHeight);
                 contextRender.drawImage(canvasElement, 0, 0);
             } else if (event.type === "release") {
+                // Set variable to know touch is not in progress:
+                touchInProgress = false;
                 // Reset all last* variables, and update fabric canvas to get crisper image:
-                //lastEvent = undefined;
-                //lastGesture = undefined;
                 lastTouches = undefined;
                 lastCenter = undefined;
 
+                // Callback for onStep event:
+                parseCallback(endCallback(leftVal, topVal, rotateVal, scaleVal));
+
                 // Set external canvas visualization's pinch&zoom settings, and render:
-                endCallback(leftVal, topVal, rotateVal, scaleVal);
-                /*canvas.select("group")
-                    .attr("scaleX", scaleVal)
-                    .attr("scaleY", scaleVal)
-                    .attr("angle", rotateVal)
-                    .attr("left", leftVal)
-                    .attr("top", topVal);
-                canvas.pumpRender();*/
+                renderCallback(leftVal, topVal, rotateVal, scaleVal);
                 // Show external canvas:
                 canvasElement.style.display = "";
                 // Hide pinch&zoom canvas:
@@ -187,7 +209,7 @@ define('scalejs.canvas-touch/canvas-touch',[
                     // Starting action, so reset lastTouches:
                     if (lastTouches.length !== 2) {
                         lastTouches = touches;
-                        lastCenter = undefined; // Prevent rotating when adding finger.
+                        lastCenter = undefined; // Prevent action when adding finger.
                     }
 
                     // Calculate Center:
@@ -201,20 +223,20 @@ define('scalejs.canvas-touch/canvas-touch',[
 
                     // Calculate Scale:
                     scaleDiff = distance(touches[0], touches[1]) / distance(lastTouches[0], lastTouches[1]);
-
-                    // Calculate Rotation:
-                    rotateDiff = Math.atan2(lastTouches[0].pageX - lastCenter.x, lastTouches[0].pageY - lastCenter.y) - Math.atan2(touches[0].pageX - center.x, touches[0].pageY - center.y);
-                    // Get sin and cos of angle in radians (for later):
-                    sin = Math.sin(rotateDiff);
-                    cos = Math.cos(rotateDiff);
-                    // Convert to degrees for fabric:
-                    rotateDiff *= 180 / Math.PI;
-
                     // Apply Scale:
                     scaleVal *= scaleDiff;
 
-                    // Apply Rotation:
-                    rotateVal += rotateDiff;
+                    if (enableRotate) {
+                        // Calculate Rotation:
+                        rotateDiff = Math.atan2(lastTouches[0].pageX - lastCenter.x, lastTouches[0].pageY - lastCenter.y) - Math.atan2(touches[0].pageX - center.x, touches[0].pageY - center.y);
+                        // Get sin and cos of angle in radians (for later):
+                        sin = Math.sin(rotateDiff);
+                        cos = Math.cos(rotateDiff);
+                        // Convert to degrees for fabric:
+                        rotateDiff *= 180 / Math.PI;
+                        // Apply Rotation:
+                        rotateVal += rotateDiff;
+                    }
 
                     // Get canvas position:
                     pagePos = event.currentTarget.getBoundingClientRect();
@@ -244,7 +266,7 @@ define('scalejs.canvas-touch/canvas-touch',[
                         y: scaleDiff * (rotatePos.y - elementPos.pageY) + elementPos.pageY - topVal
                     };
 
-                    // Translate delta in center position:
+                    // Translate deltaDistance in center position:
                     transPos = {
                         x: scalePos.x + (center.x - lastCenter.x),
                         y: scalePos.y + (center.y - lastCenter.y)
@@ -265,11 +287,82 @@ define('scalejs.canvas-touch/canvas-touch',[
                 contextShow.drawImage(canvasRender, leftVal, topVal);
                 contextShow.setTransform(1, 0, 0, 1, 0, 0);
 
-                //lastEvent = event;
-                //lastGesture = gesture;
+                // Callback for onStep event:
+                parseCallback(stepCallback(leftVal, topVal, rotateVal, scaleVal));
+
                 lastTouches = touches;
                 lastCenter = center;
             }
+        }
+
+        // Function to handle mousewheel events (zoom):
+        function mousewheelHandler(event) {
+            // create some hammerisch eventData
+            var touches = hammer.event.getTouchList(event, 'scroll'),
+                delta = event.wheelDelta,
+                gesture = {
+                    preventDefault: function () { return; },
+                    touches: [{
+                        pageX: touches[0].pageX + 100,
+                        pageY: touches[0].pageY
+                    }, {
+                        pageX: touches[0].pageX - 100,
+                        pageY: touches[0].pageY
+                    }]
+                },
+                backupTouches,
+                backupCenter;
+
+            // Calculate scale:
+            if (delta > 0) {
+                delta = 100 / 3;    // Scale up 33%
+            } else if (delta < 0) {
+                delta = -25;        // Scale down 25%
+            } else {
+                delta = 0;          // Invalid, or zero delta.
+            }
+
+            if (touchInProgress) {
+                // Backup last* variables:
+                backupTouches = lastTouches;
+                backupCenter = lastCenter;
+
+                // Setup center and touches for event:
+                lastTouches = [{
+                    pageX: touches[0].pageX + 100,
+                    pageY: touches[0].pageY
+                }, {
+                    pageX: touches[0].pageX - 100,
+                    pageY: touches[0].pageY
+                }];
+                lastCenter = {
+                    x: touches[0].pageX,
+                    y: touches[0].pageY
+                };
+
+                // Simulate pinch:
+                gesture.touches[0].pageX += delta;
+                gesture.touches[1].pageX -= delta;
+                hammerObj.trigger("pinch", gesture);
+
+                // Restore last* variables:
+                lastTouches = backupTouches;
+                lastCenter = backupCenter;
+            } else {
+                // Simulate starting touch:
+                hammerObj.trigger("touch", gesture);
+
+                // Simulate pinch:
+                gesture.touches[0].pageX += delta;
+                gesture.touches[1].pageX -= delta;
+                hammerObj.trigger("pinch", gesture);
+
+                // Simulate release:
+                hammerObj.trigger("release", gesture);
+            }
+
+            // prevent scrolling
+            event.preventDefault();
         }
 
         // Subscribe to touch events:
@@ -280,36 +373,21 @@ define('scalejs.canvas-touch/canvas-touch',[
             prevent_default: true
         });
         hammerObj.on("touch drag swipe pinch rotate transform release", touchHandler);
+        hammerObj.on("mousewheel", mousewheelHandler);
 
-        // Function to get current transform:
-        function getTransform() {
-            return {
-                left: leftVal,
-                top: topVal,
-                rotate: rotateVal,
-                scale: scaleVal
-            };
-        }
-        // Function to set new transform:
-        function setTransform(top, left, rotate, scale) {
-            topVal = top;
-            leftVal = left;
-            rotateVal = rotate;
-            scaleVal = scale;
-        }
-        // Function to reset the transform to initial values:
-        function resetTransform() {
-            leftVal = 0;
-            topVal = 0;
-            rotateVal = 0;
-            scaleVal = 1;
+        // Function to remove canvas-touch from canvas:
+        function remove() {
+            hammerObj.off("touch drag swipe pinch rotate transform release", touchHandler);
+            hammerObj.off("mousewheel", mousewheelHandler);
+            hammerObj.enable(false);
+            canvasParent.removeChild(canvasShow);
         }
 
-        // Expose functions:
+        // Return object that can be used to change the canvas-touch instance:
         return {
-            getTransform: getTransform,
-            setTransform: setTransform,
-            resetTransform: resetTransform
+            hammerObj: hammerObj,   // Used for testing purposes.
+            setRotateState: setRotateState,
+            remove: remove
         };
     };
 });

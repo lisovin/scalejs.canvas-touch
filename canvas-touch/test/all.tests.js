@@ -2,7 +2,8 @@
 define([
     'jasmine-html',
     'scalejs!application',
-    './mainViewModel.test'
+    './touchRegistered.test',
+    './touchEvents.test'
 ], function () {
     'use strict';
 

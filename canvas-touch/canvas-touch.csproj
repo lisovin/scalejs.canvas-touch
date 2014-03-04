@@ -27,6 +27,7 @@
     <Content Include="Scripts\almond.js" />
     <Content Include="Scripts\css-builder.js" />
     <Content Include="Scripts\css.js" />
+    <Content Include="Scripts\hammer.js" />
     <Content Include="Scripts\jasmine-html.js" />
     <Content Include="Scripts\jasmine.js" />
     <Content Include="Scripts\knockout-3.0.0.debug.js" />
@@ -42,8 +43,8 @@
     <Content Include="Scripts\require.js" />
     <Content Include="Scripts\scalejs-0.3.3.js" />
     <Content Include="Scripts\scalejs-0.3.3.min.js" />
-    <Content Include="Scripts\scalejs.canvas-touch-1.0.0.js" />
-    <Content Include="Scripts\scalejs.canvas-touch-1.0.0.min.js" />
+    <Content Include="Scripts\scalejs.canvas-touch-0.1.0.20.js" />
+    <Content Include="Scripts\scalejs.canvas-touch-0.1.0.20.min.js" />
     <Content Include="Scripts\scalejs.functional-0.2.9.8.js" />
     <Content Include="Scripts\scalejs.functional-0.2.9.8.min.js" />
     <Content Include="Scripts\scalejs.linq-linqjs-3.0.3.1.js" />
@@ -67,7 +68,9 @@
     <Content Include="app\main\mainModule.js" />
     <Content Include="Scripts\_scalejs.intellisense.js" />
     <Content Include="test\all.tests.js" />
-    <Content Include="test\mainViewModel.test.js" />
+    <Content Include="test\touchEvents.test.js" />
+    <Content Include="test\touchHelper.js" />
+    <Content Include="test\touchRegistered.test.js" />
     <Content Include="config.js" />
     <Content Include="Properties\build.rjs" />
     <Content Include="Properties\canvas-touch.nuspec" />
