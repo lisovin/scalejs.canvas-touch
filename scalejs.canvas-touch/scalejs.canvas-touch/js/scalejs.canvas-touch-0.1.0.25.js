@@ -1,13 +1,13 @@
-﻿/*global define*/
+/*global define*/
 /*jslint browser: true */
-define([
+define('scalejs.canvas-touch/canvas-touch',[
     //'scalejs!core',
     'hammer'
 ], function (
     //core,
     hammer
 ) {
-    'use strict';
+    
 
     return function (
         options
@@ -283,9 +283,6 @@ define([
                     topVal += transPos.y;
                 }
 
-                // Callback for onStep event:
-                parseCallback(stepCallback(leftVal, topVal, rotateVal, scaleVal));
-
                 // Set pinch&zoom canvas's pinch&zoom settings, and render:
                 contextShow.setTransform(1, 0, 0, 1, 0, 0);
                 contextShow.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -295,6 +292,9 @@ define([
                 contextShow.translate(-leftVal, -topVal);
                 contextShow.drawImage(canvasRender, leftVal, topVal);
                 contextShow.setTransform(1, 0, 0, 1, 0, 0);
+
+                // Callback for onStep event:
+                parseCallback(stepCallback(leftVal, topVal, rotateVal, scaleVal));
 
                 lastTouches = touches;
                 lastCenter = center;
@@ -397,4 +397,38 @@ define([
         };
     };
 });
+
+
+/*global define*/
+define('scalejs.canvas-touch',[
+    'scalejs!core',
+    './scalejs.canvas-touch/canvas-touch'
+], function (
+    core,
+    canvastouch
+) {
+    
+
+    // There are few ways you can register an extension.
+    // 1. Core and Sandbox are extended in the same way:
+    //      core.registerExtension({ part1: part1 });
+    //
+    // 2. Core and Sandbox are extended differently:
+    //      core.registerExtension({
+    //          core: {corePart: corePart},
+    //          sandbox: {sandboxPart: sandboxPart}
+    //      });
+    //
+    // 3. Core and Sandbox are extended dynamically:
+    //      core.registerExtension({
+    //          buildCore: buildCore,
+    //          buildSandbox: buildSandbox
+    //      });
+    core.registerExtension({
+        canvas: {
+            touch: canvastouch
+        }
+    });
+});
+
 

@@ -2766,7 +2766,6 @@ define('scalejs.canvas-touch/canvas-touch',[
             scaleVal = 1,
             lastTouches,
             lastCenter,
-            curEnableRotate,    // Used to store the rotate setting.
             touchInProgress = false;
 
         function parseCallback(transform) {
@@ -3041,7 +3040,7 @@ define('scalejs.canvas-touch/canvas-touch',[
 
             // Calculate scale:
             if (delta > 0) {
-                delta = 100 / 3;    // Scale up 25%
+                delta = 100 / 3;    // Scale up 33%
             } else if (delta < 0) {
                 delta = -25;        // Scale down 25%
             } else {

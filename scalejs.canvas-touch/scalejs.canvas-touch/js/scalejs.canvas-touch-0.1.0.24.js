@@ -1,13 +1,13 @@
-﻿/*global define*/
+/*global define*/
 /*jslint browser: true */
-define([
+define('scalejs.canvas-touch/canvas-touch',[
     //'scalejs!core',
     'hammer'
 ], function (
     //core,
     hammer
 ) {
-    'use strict';
+    
 
     return function (
         options
@@ -132,6 +132,8 @@ define([
             }
 
             if (event.type === "touch") {
+                // Set variable to know touch is in progress:
+                /*touchInProgress = true;
                 // Set all last* variables to starting gesture:
                 lastTouches = touches;
                 // Calculate Center:
@@ -152,29 +154,61 @@ define([
 
                 // Callback for onStart event:
                 parseCallback(startCallback(leftVal, topVal, rotateVal, scaleVal));
+
+                // Render external canvas to pinch&zoom canvas:
+                contextShow.setTransform(1, 0, 0, 1, 0, 0);
+                contextShow.clearRect(0, 0, canvasWidth, canvasHeight);
+                contextShow.drawImage(canvasElement, 0, 0);
+                // Show pinch&zoom canvas:
+                canvasShow.style.display = "";
+                // Hide external canvas:
+                canvasElement.style.display = "none";
+                // Reset external canvas visualization to default pinch&zoom settings, and render:
+                renderCallback(0, 0, 0, 1);
+                // Render external canvas to off-screen buffer:
+                contextRender.clearRect(0, 0, canvasWidth, canvasHeight);
+                contextRender.drawImage(canvasElement, 0, 0);*/
             } else if (event.type === "release") {
-                if (touchInProgress) {
-                    // Set variable to know touch is not in progress:
-                    touchInProgress = false;
-                    // Reset all last* variables, and update fabric canvas to get crisper image:
-                    lastTouches = undefined;
-                    lastCenter = undefined;
+                // Set variable to know touch is not in progress:
+                touchInProgress = false;
+                // Reset all last* variables, and update fabric canvas to get crisper image:
+                lastTouches = undefined;
+                lastCenter = undefined;
 
-                    // Callback for onStep event:
-                    parseCallback(endCallback(leftVal, topVal, rotateVal, scaleVal));
+                // Callback for onStep event:
+                parseCallback(endCallback(leftVal, topVal, rotateVal, scaleVal));
 
-                    // Set external canvas visualization's pinch&zoom settings, and render:
-                    renderCallback(leftVal, topVal, rotateVal, scaleVal);
-                    // Show external canvas:
-                    canvasElement.style.display = "";
-                    // Hide pinch&zoom canvas:
-                    canvasShow.style.display = "none";
-                }
+                // Set external canvas visualization's pinch&zoom settings, and render:
+                renderCallback(leftVal, topVal, rotateVal, scaleVal);
+                // Show external canvas:
+                canvasElement.style.display = "";
+                // Hide pinch&zoom canvas:
+                canvasShow.style.display = "none";
             } else {
                 // Touch has been initiated, and now a transform gesture is trigger:
                 if (!touchInProgress) {
                     // Set variable to know touch is in progress:
                     touchInProgress = true;
+                    // Set all last* variables to starting gesture:
+                    lastTouches = touches;
+                    // Calculate Center:
+                    if (touches.length === 2) {
+                        lastCenter = {
+                            x: (touches[0].pageX - touches[1].pageX) / 2 + touches[1].pageX,
+                            y: (touches[0].pageY - touches[1].pageY) / 2 + touches[1].pageY
+                        };
+                    } else {
+                        lastCenter = {
+                            x: touches[0].pageX,
+                            y: touches[0].pageY
+                        };
+                    }
+
+                    // Update width and height of pinch&zoom canvas, and off-screen buffer:
+                    resizeCanvas();
+
+                    // Callback for onStart event:
+                    parseCallback(startCallback(leftVal, topVal, rotateVal, scaleVal));
 
                     // Render external canvas to pinch&zoom canvas:
                     contextShow.setTransform(1, 0, 0, 1, 0, 0);
@@ -283,9 +317,6 @@ define([
                     topVal += transPos.y;
                 }
 
-                // Callback for onStep event:
-                parseCallback(stepCallback(leftVal, topVal, rotateVal, scaleVal));
-
                 // Set pinch&zoom canvas's pinch&zoom settings, and render:
                 contextShow.setTransform(1, 0, 0, 1, 0, 0);
                 contextShow.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -295,6 +326,9 @@ define([
                 contextShow.translate(-leftVal, -topVal);
                 contextShow.drawImage(canvasRender, leftVal, topVal);
                 contextShow.setTransform(1, 0, 0, 1, 0, 0);
+
+                // Callback for onStep event:
+                parseCallback(stepCallback(leftVal, topVal, rotateVal, scaleVal));
 
                 lastTouches = touches;
                 lastCenter = center;
@@ -397,4 +431,38 @@ define([
         };
     };
 });
+
+
+/*global define*/
+define('scalejs.canvas-touch',[
+    'scalejs!core',
+    './scalejs.canvas-touch/canvas-touch'
+], function (
+    core,
+    canvastouch
+) {
+    
+
+    // There are few ways you can register an extension.
+    // 1. Core and Sandbox are extended in the same way:
+    //      core.registerExtension({ part1: part1 });
+    //
+    // 2. Core and Sandbox are extended differently:
+    //      core.registerExtension({
+    //          core: {corePart: corePart},
+    //          sandbox: {sandboxPart: sandboxPart}
+    //      });
+    //
+    // 3. Core and Sandbox are extended dynamically:
+    //      core.registerExtension({
+    //          buildCore: buildCore,
+    //          buildSandbox: buildSandbox
+    //      });
+    core.registerExtension({
+        canvas: {
+            touch: canvastouch
+        }
+    });
+});
+
 
