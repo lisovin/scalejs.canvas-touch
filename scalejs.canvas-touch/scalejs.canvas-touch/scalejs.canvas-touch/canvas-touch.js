@@ -44,7 +44,7 @@ define([
             touchInProgress = false;
 
         function parseCallback(transform) {
-            if (Object.prototype.toString.call(transform) === "[object Object]") {
+            if (transform instanceof Object) {
                 leftVal = transform.left;
                 topVal = transform.top;
                 rotateVal = transform.rotate;
@@ -53,9 +53,7 @@ define([
         }
 
         function setRotateState(state) {
-            if (Object.prototype.toString.call(state) === "[object Boolean]") {
-                enableRotate = state;
-            }
+            enableRotate = state;
         }
 
         // Create off-screen buffer canvas:
